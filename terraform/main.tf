@@ -106,7 +106,7 @@ resource "aws_instance" "jenkins" {
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
   key_name                    = var.key_name
-  user_data                   = file("${path.module}/jenkins-install.sh")
+  user_data = file("${path.module}/jenkins-install.sh")
 
   vpc_security_group_ids      = [aws_security_group.devops_sg.id]
 
