@@ -6,10 +6,14 @@ apt-get upgrade -y
 # Install Java (required for Jenkins)
 apt-get install -y openjdk-11-jdk
 
+# Add Jenkins repository key (new method for Ubuntu 24.04)
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo tee \
+    /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
 # Add Jenkins repository
-wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
-sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > \
-    /etc/apt/sources.list.d/jenkins.list'
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+    https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+    /etc/apt/sources.list.d/jenkins.list > /dev/null
 
 # Install Jenkins
 apt-get update -y
