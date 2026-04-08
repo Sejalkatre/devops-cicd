@@ -46,7 +46,7 @@ module "eks" {
 # Jenkins EC2 Instance
 resource "aws_instance" "jenkins" {
   ami                         = var.ami_id
-  instance_type               = "t3.medium"
+  instance_type               = "t3.small"
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
   key_name                    = var.key_name
