@@ -80,20 +80,13 @@ resource "aws_security_group" "devops_sg" {
   }
 
   ingress {
-    description = "Jenkins"
+    description = "Jenkins & argocd"
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "ArgoCD"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   egress {
     description = "Allow all outbound"
