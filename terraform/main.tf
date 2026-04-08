@@ -21,13 +21,13 @@ module "vpc" {
 # EKS Module
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.8.4"   # pin stable version
+  version = "20.8.4"   # this pins the Terraform module version
 
-  name            = "devops-cluster"   # replaces cluster_name
-  cluster_version = "1.29"             # replaces cluster_version
+  cluster_name    = "devops-cluster"   # correct argument for cluster name
+  cluster_version = "1.29"             # correct argument for Kubernetes version
 
   vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets   # replaces subnets
+  subnet_ids = module.vpc.private_subnets   # correct argument for subnets
 
   cluster_endpoint_public_access = true
 }
