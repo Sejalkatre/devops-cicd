@@ -40,5 +40,16 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                    kubectl --kubeconfig=$KUBECONFIG apply -f k8s/deployment.yaml
+                    kubectl --kubeconfig=$KUBECONFIG rollout status deployment <your-deployment-name> -n <namespace>
+                    """
+                }
+            }
+        }
     }
 }
