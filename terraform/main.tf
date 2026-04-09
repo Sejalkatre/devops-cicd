@@ -49,9 +49,9 @@ module "eks" {
   # Worker Nodes (Managed Node Group)
   eks_managed_node_groups = {
     default = {
-      min_size     = 2
-      max_size     = 4
-      desired_size = 2
+      min_size      = 2
+      max_size      = 4
+      desired_size  = 2
       instance_types = ["t3.medium"]
       capacity_type  = "ON_DEMAND"
     }
@@ -91,13 +91,12 @@ resource "aws_security_group" "devops_sg" {
   }
 
   ingress {
-    description = "Jenkins & argocd"
+    description = "Jenkins & ArgoCD"
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
 
   egress {
     description = "Allow all outbound"
@@ -117,8 +116,7 @@ resource "aws_instance" "jenkins" {
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
   key_name                    = var.key_name
-  user_data = file("${path.module}/jenkins-install.sh")
- )
+  user_data                   = file("${path.module}/jenkins-install.sh")
 
   vpc_security_group_ids      = [aws_security_group.devops_sg.id]
 
