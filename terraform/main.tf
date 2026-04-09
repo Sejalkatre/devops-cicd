@@ -35,7 +35,7 @@ module "eks" {
   version = "20.8.4"   # pin stable version
 
   cluster_name    = "devops-cluster"
-  cluster_version = "1.28"   # use supported version
+  cluster_version = "1.29"   # use supported version
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
