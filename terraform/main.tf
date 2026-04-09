@@ -35,7 +35,7 @@ module "eks" {
   version = "20.8.4"   # pin stable version
 
   cluster_name    = "devops-cluster"
-  cluster_version = "1.29"
+  cluster_version = "1.28"   # use supported version
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -45,11 +45,12 @@ module "eks" {
   # Add a managed node group with 1 worker node
   eks_managed_node_groups = {
     default = {
-      desired_size = 1
-      min_size     = 1
-      max_size     = 2
+      desired_size   = 1
+      min_size       = 1
+      max_size       = 2
 
       instance_types = ["t3.small"]
+      ami_type       = "AL2_x86_64"   # Amazon Linux 2 EKS optimized AMI
       capacity_type  = "ON_DEMAND"
     }
   }
