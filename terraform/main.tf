@@ -6,10 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.20"
-    }
   }
 }
 
@@ -85,32 +81,6 @@ resource "aws_security_group" "devops_sg" {
 }
 
 # -----------------------------
-# Launch Template for Ubuntu Nodes
-# -----------------------------
-resource "aws_launch_template" "eks_nodes" {
-  name_prefix   = "eks-nodes-"
-  image_id      = "ami-0a15226b1f7f23580"   # Ubuntu 20.04 AMI you found
-  instance_type = "t3.micro"
-
-  network_interfaces {
-    associate_public_ip_address = true
-    security_groups             = [aws_security_group.devops_sg.id]
-  }
-
-  user_data = base64encode(<<-EOF
-              #!/bin/bash
-              apt-get update -y
-              apt-get install -y apt-transport-https ca-certificates curl
-              curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-              echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
-              apt-get update -y
-              apt-get install -y kubelet kubeadm kubectl
-              systemctl enable kubelet && systemctl start kubelet
-              EOF
-  )
-}
-
-# -----------------------------
 # EKS Cluster Module
 # -----------------------------
 module "eks" {
@@ -118,7 +88,7 @@ module "eks" {
   version = "20.8.4"
 
   cluster_name    = "devops-cluster"
-  cluster_version = "1.28"
+  cluster_version = "1.27"   # <-- use a supported version in your region
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -130,9 +100,7 @@ module "eks" {
       desired_size = 1
       min_size     = 1
       max_size     = 1
-
-      launch_template_id      = aws_launch_template.eks_nodes.id
-      launch_template_version = "$Latest"
+      instance_types = ["t3.micro"]
     }
   }
 }
