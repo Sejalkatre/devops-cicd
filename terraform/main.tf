@@ -20,7 +20,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.1.2"
 
-  name    = "devops-vpc"
+  name    = "simple-vpc"
   cidr    = "10.0.0.0/16"
 
   azs             = ["${var.region}a", "${var.region}b"]
@@ -28,15 +28,14 @@ module "vpc" {
   public_subnets  = ["10.0.3.0/24", "10.0.4.0/24"]
 
   enable_nat_gateway = true
-  enable_vpn_gateway = false
 }
 
 # -----------------------------
 # Security Group
 # -----------------------------
-resource "aws_security_group" "devops_sg" {
-  name        = "devops-sg"
-  description = "Allow SSH, HTTP, HTTPS, Jenkins, ArgoCD"
+resource "aws_security_group" "main_sg" {
+  name        = "main-sg"
+  description = "Allow SSH and web traffic"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
@@ -63,14 +62,6 @@ resource "aws_security_group" "devops_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "Jenkins & ArgoCD"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
     description = "Allow all outbound"
     from_port   = 0
@@ -81,14 +72,14 @@ resource "aws_security_group" "devops_sg" {
 }
 
 # -----------------------------
-# EKS Cluster Module
+# EKS Cluster with One Node Group
 # -----------------------------
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.4"
 
-  cluster_name    = "devops-cluster"
-  cluster_version = "1.27"   # <-- use a supported version in your region
+  cluster_name    = "simple-eks-cluster"
+  cluster_version = "1.26"   # <-- use a supported version in your region
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -106,7 +97,7 @@ module "eks" {
 }
 
 # -----------------------------
-# Jenkins EC2 Instance
+# EC2 Instance
 # -----------------------------
 resource "aws_instance" "jenkins" {
   ami                         = var.ami_id
@@ -115,9 +106,9 @@ resource "aws_instance" "jenkins" {
   associate_public_ip_address = true
   key_name                    = var.key_name
 
-  vpc_security_group_ids = [aws_security_group.devops_sg.id]
+  vpc_security_group_ids = [aws_security_group.main_sg.id]
 
   tags = {
-    Name = "Jenkins-Server"
+    Name = "Simple-EC2"
   }
 }
