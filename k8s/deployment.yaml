@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: my-app
-        image: your-registry/app:latest
+        image: docker.io/sejalkatre/devops-cicd:3
         ports:
         - containerPort: 5000
