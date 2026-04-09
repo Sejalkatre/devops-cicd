@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = "your-registry"          // e.g. dockerhub username or ECR repo
+        REGISTRY = "docker.io/sejalkatre"          // e.g. dockerhub username or ECR repo
         IMAGE    = "app"
         TAG      = "${env.BUILD_NUMBER}"    // unique tag per build
     }
