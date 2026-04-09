@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"   # locks you to AWS provider 5.x (e.g. 5.100.0)
+      version = "~> 5.0"   # stay on AWS provider 5.x (latest stable)
     }
   }
 }
@@ -16,7 +16,7 @@ provider "aws" {
 # VPC Module
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.1.2"   # pin stable version
+  version = "5.1.2"
 
   name    = "devops-vpc"
   cidr    = "10.0.0.0/16"
@@ -32,7 +32,7 @@ module "vpc" {
 # EKS Module
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.1.0"   # upgrade to a version that supports aws_auth
+  version = "21.1.0"   # upgraded for aws_auth support
 
   cluster_name    = "devops-cluster"
   cluster_version = "1.29"
@@ -54,7 +54,7 @@ module "eks" {
     }
   }
 
-  # ✅ Now these arguments are valid
+  # ✅ Map your IAM user into aws-auth ConfigMap
   manage_aws_auth = true
 
   aws_auth_users = [
@@ -65,7 +65,6 @@ module "eks" {
     }
   ]
 }
-
 
 # Security Group for Jenkins EC2
 resource "aws_security_group" "jenkins_sg" {
@@ -128,7 +127,6 @@ resource "aws_instance" "jenkins" {
 
   vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
 
-  # Install Jenkins, Docker, OpenJDK automatically
   user_data = file("${path.module}/jenkins-install.sh")
 
   tags = {
