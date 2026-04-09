@@ -1,38 +1,33 @@
 #!/bin/bash
 # Update system
-apt-get update -y
-apt-get upgrade -y
+sudo apt-get update -y
+sudo apt-get upgrade -y
 
-# Install Java (required for Jenkins)
-apt-get install -y openjdk-11-jdk
+# Install Java (OpenJDK 11)
+sudo apt-get install -y openjdk-11-jdk
 
-# Add Jenkins repository key (Ubuntu 24.04 method)
-curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | tee \
-    /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-
-# Add Jenkins repository with signed-by option
-echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-    https://pkg.jenkins.io/debian-stable binary/ | tee \
-    /etc/apt/sources.list.d/jenkins.list > /dev/null
+# Install Docker
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) stable"
+sudo apt-get update -y
+sudo apt-get install -y docker-ce
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker ubuntu
 
 # Install Jenkins
-apt-get update -y
-apt-get install -y jenkins
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
 
-# Enable and start Jenkins service
-systemctl enable jenkins
-systemctl start jenkins
+sudo apt-get update -y
+sudo apt-get install -y jenkins
 
-# Install Docker and Git
-apt-get install -y docker.io git
-
-# Enable and start Docker
-systemctl enable docker
-systemctl start docker
-
-# Add Jenkins user to Docker group (lowercase!)
-usermod -aG docker jenkins
-
-# Print Jenkins initial admin password into cloud-init logs
-echo "Jenkins initial admin password:" >> /var/log/cloud-init-output.log
-cat /var/lib/jenkins/secrets/initialAdminPassword >> /var/log/cloud-init-output.log
+# Enable and start Jenkins
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
