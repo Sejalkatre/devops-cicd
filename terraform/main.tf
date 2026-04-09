@@ -36,72 +36,6 @@ module "vpc" {
 }
 
 # -----------------------------
-# EKS Module
-# -----------------------------
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "20.8.4"
-
-  cluster_name    = "devops-cluster"
-  cluster_version = "1.26"
-
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
-
-  cluster_endpoint_public_access = true
-
-  eks_managed_node_groups = {
-    default = {
-      min_size       = 1
-      max_size       = 1
-      desired_size   = 1
-      instance_types = ["t3.micro"]
-      capacity_type  = "ON_DEMAND"
-    }
-  }
-}
-
-# -----------------------------
-# Kubernetes Provider
-# -----------------------------
-data "aws_eks_cluster" "this" {
-  name       = module.eks.cluster_name
-  depends_on = [module.eks]   # ensure cluster exists first
-}
-
-data "aws_eks_cluster_auth" "this" {
-  name       = module.eks.cluster_name
-  depends_on = [module.eks]   # ensure cluster exists first
-}
-
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.this.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.this.token
-}
-
-# -----------------------------
-# RBAC Binding (fixes Unauthorized issue)
-# -----------------------------
-resource "kubernetes_cluster_role_binding" "eks_admins" {
-  metadata {
-    name = "eks-admins-binding"
-  }
-
-  role_ref {
-    api_group = "rbac.authorization.k8s.io"
-    kind      = "ClusterRole"
-    name      = "cluster-admin"
-  }
-
-  subject {
-    kind      = "Group"
-    name      = "eks-admins"
-    api_group = "rbac.authorization.k8s.io"
-  }
-}
-
-# -----------------------------
 # Security Group
 # -----------------------------
 resource "aws_security_group" "devops_sg" {
@@ -147,6 +81,119 @@ resource "aws_security_group" "devops_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# -----------------------------
+# IAM Role for EKS Cluster
+# -----------------------------
+resource "aws_iam_role" "eks_cluster" {
+  name = "eks-cluster-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "eks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  role       = aws_iam_role.eks_cluster.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSServicePolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+  role       = aws_iam_role.eks_cluster.name
+}
+
+# -----------------------------
+# IAM Role for Node Group
+# -----------------------------
+resource "aws_iam_role" "eks_nodes_role" {
+  name = "eks-nodes-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_nodes_AmazonEKSWorkerNodePolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role       = aws_iam_role.eks_nodes_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_nodes_AmazonEC2ContainerRegistryReadOnly" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.eks_nodes_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_nodes_AmazonEKS_CNI_Policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.eks_nodes_role.name
+}
+
+# -----------------------------
+# Launch Template for Ubuntu Nodes
+# -----------------------------
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix   = "eks-nodes-"
+  image_id      = "ami-0a15226b1f7f23580"   # Ubuntu 20.04 AMI you found
+  instance_type = "t3.micro"
+
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.devops_sg.id]
+  }
+
+  user_data = base64encode(<<-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y apt-transport-https ca-certificates curl
+              curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+              echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
+              apt-get update -y
+              apt-get install -y kubelet kubeadm kubectl
+              systemctl enable kubelet && systemctl start kubelet
+              EOF
+  )
+}
+
+# -----------------------------
+# EKS Cluster Module
+# -----------------------------
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "20.8.4"
+
+  cluster_name    = "devops-cluster"
+  cluster_version = "1.29"
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  cluster_endpoint_public_access = true
+
+  cluster_iam_role_name = aws_iam_role.eks_cluster.name
+
+  eks_managed_node_groups = {
+    default = {
+      desired_size = 1
+      min_size     = 1
+      max_size     = 1
+
+      iam_role_arn           = aws_iam_role.eks_nodes_role.arn
+      launch_template_id      = aws_launch_template.eks_nodes.id
+      launch_template_version = "$Latest"
+    }
   }
 }
 
