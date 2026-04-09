@@ -56,6 +56,57 @@ module "eks" {
   }
 }
 
+# Security Group for Jenkins EC2
+resource "aws_security_group" "jenkins_sg" {
+  name        = "jenkins-sg"
+  description = "Allow SSH and Jenkins access"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Jenkins Web UI"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Jenkins-SG"
+  }
+}
+
 # Jenkins EC2 Instance (Ubuntu Server)
 resource "aws_instance" "jenkins" {
   ami                         = var.ami_id   # Ubuntu AMI ID for your region
@@ -63,6 +114,8 @@ resource "aws_instance" "jenkins" {
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
   key_name                    = var.key_name
+
+  vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
 
   # Install Jenkins, Docker, OpenJDK automatically
   user_data = file("${path.module}/jenkins-install.sh")
