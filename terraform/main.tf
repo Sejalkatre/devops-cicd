@@ -49,7 +49,7 @@ module "eks" {
       min_size     = 1
       max_size     = 2
 
-      instance_types = ["t3.medium"]
+      instance_types = ["t3.small"]
       capacity_type  = "ON_DEMAND"
     }
   }
@@ -58,7 +58,7 @@ module "eks" {
 # Jenkins EC2 Instance (Ubuntu Server)
 resource "aws_instance" "jenkins" {
   ami                         = var.ami_id   # Ubuntu AMI ID for your region
-  instance_type               = "t3.medium"
+  instance_type               = "t3.micro"
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
   key_name                    = var.key_name
