@@ -13,30 +13,30 @@ provider "aws" {
   region = var.region
 }
 
-# -----------------------------
-# VPC Module
-# -----------------------------
+############################
+# VPC
+############################
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.1.2"
 
-  name    = "simple-vpc"
+  name    = "cicd-vpc"
   cidr    = "10.0.0.0/16"
 
   azs             = ["${var.region}a", "${var.region}b"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.3.0/24", "10.0.4.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
 
   enable_nat_gateway = true
+  single_nat_gateway = true
 }
 
-# -----------------------------
+############################
 # Security Group
-# -----------------------------
+############################
 resource "aws_security_group" "main_sg" {
-  name        = "main-sg"
-  description = "Allow SSH and web traffic"
-  vpc_id      = module.vpc.vpc_id
+  name   = "main-sg"
+  vpc_id = module.vpc.vpc_id
 
   ingress {
     description = "SSH"
@@ -62,6 +62,22 @@ resource "aws_security_group" "main_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Jenkins UI"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "ArgoCD"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     description = "Allow all outbound"
     from_port   = 0
@@ -71,15 +87,15 @@ resource "aws_security_group" "main_sg" {
   }
 }
 
-# -----------------------------
-# EKS Cluster with One Node Group
-# -----------------------------
+############################
+# EKS Cluster
+############################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.4"
 
   cluster_name    = "simple-eks-cluster"
-  cluster_version = "1.26"   # <-- use a supported version in your region
+  cluster_version = "1.29"   # <-- use a supported version in your region
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -88,27 +104,49 @@ module "eks" {
 
   eks_managed_node_groups = {
     default = {
-      desired_size = 1
-      min_size     = 1
-      max_size     = 1
-      instance_types = ["t3.micro"]
+      instance_types = ["t3.small"]
+      desired_size   = 2
+      min_size       = 1
+      max_size       = 3
     }
   }
 }
 
-# -----------------------------
-# EC2 Instance
-# -----------------------------
+############################
+# Jenkins EC2 Instance
+############################
 resource "aws_instance" "jenkins" {
-  ami                         = var.ami_id
-  instance_type               = "t3.small"
+  ami           = var.ami_id   # Ubuntu AMI ID
+  instance_type = "t3.small"
+
   subnet_id                   = module.vpc.public_subnets[0]
-  associate_public_ip_address = true
   key_name                    = var.key_name
+  associate_public_ip_address = true
 
   vpc_security_group_ids = [aws_security_group.main_sg.id]
 
   tags = {
-    Name = "Simple-EC2"
+    Name = "Jenkins-Server"
   }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo apt update -y
+              sudo apt install -y docker.io git unzip curl
+              sudo systemctl start docker
+              sudo usermod -aG docker ubuntu
+
+              # Install Jenkins
+              wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+              sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+              sudo apt update
+              sudo apt install -y openjdk-11-jdk jenkins
+              sudo systemctl enable jenkins
+              sudo systemctl start jenkins
+
+              # Install AWS CLI v2
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              sudo ./aws/install
+  EOF
 }
