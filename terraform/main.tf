@@ -85,63 +85,6 @@ resource "aws_security_group" "devops_sg" {
 }
 
 # -----------------------------
-# IAM Role for EKS Cluster
-# -----------------------------
-resource "aws_iam_role" "eks_cluster" {
-  name = "eks-cluster-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = { Service = "eks.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.eks_cluster.name
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSServicePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role       = aws_iam_role.eks_cluster.name
-}
-
-# -----------------------------
-# IAM Role for Node Group
-# -----------------------------
-resource "aws_iam_role" "eks_nodes_role" {
-  name = "eks-nodes-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_nodes_AmazonEKSWorkerNodePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.eks_nodes_role.name
-}
-
-resource "aws_iam_role_policy_attachment" "eks_nodes_AmazonEC2ContainerRegistryReadOnly" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks_nodes_role.name
-}
-
-resource "aws_iam_role_policy_attachment" "eks_nodes_AmazonEKS_CNI_Policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks_nodes_role.name
-}
-
-# -----------------------------
 # Launch Template for Ubuntu Nodes
 # -----------------------------
 resource "aws_launch_template" "eks_nodes" {
@@ -182,15 +125,12 @@ module "eks" {
 
   cluster_endpoint_public_access = true
 
-  cluster_iam_role_arn = aws_iam_role.eks_cluster.arn
-
   eks_managed_node_groups = {
     default = {
       desired_size = 1
       min_size     = 1
       max_size     = 1
 
-      iam_role_arn           = aws_iam_role.eks_nodes_role.arn
       launch_template_id      = aws_launch_template.eks_nodes.id
       launch_template_version = "$Latest"
     }
