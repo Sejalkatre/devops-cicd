@@ -50,9 +50,9 @@ module "eks" {
   eks_managed_node_groups = {
     default = {
       min_size      = 2
-      max_size      = 4
+      max_size      = 2
       desired_size  = 2
-      instance_types = ["t3.medium"]
+      instance_types = ["t3.small"]
       capacity_type  = "ON_DEMAND"
     }
   }
