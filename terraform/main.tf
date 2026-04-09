@@ -54,6 +54,17 @@ module "eks" {
       capacity_type  = "ON_DEMAND"
     }
   }
+
+  # ✅ Map your IAM user into aws-auth ConfigMap
+  manage_aws_auth = true
+
+  aws_auth_users = [
+    {
+      userarn  = "arn:aws:iam::014641572582:user/tf_user"
+      username = "tf_user"
+      groups   = ["system:masters"]
+    }
+  ]
 }
 
 # Security Group for Jenkins EC2
