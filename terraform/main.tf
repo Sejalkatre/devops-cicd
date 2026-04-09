@@ -95,7 +95,7 @@ module "eks" {
   version = "20.8.4"
 
   cluster_name    = "simple-eks-cluster"
-  cluster_version = "1.29"   # <-- use a supported version in your region
+  cluster_version = "1.30"   # <-- use a supported version in your region
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -105,9 +105,9 @@ module "eks" {
   eks_managed_node_groups = {
     default = {
       instance_types = ["t3.small"]
-      desired_size   = 2
+      desired_size   = 1
       min_size       = 1
-      max_size       = 3
+      max_size       = 1
     }
   }
 }
