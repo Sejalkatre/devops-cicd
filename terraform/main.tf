@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.20"
+    }
   }
 }
 
@@ -46,15 +50,52 @@ module "eks" {
 
   cluster_endpoint_public_access = true
 
-  # Worker Nodes (Managed Node Group)
   eks_managed_node_groups = {
     default = {
-      min_size      = 1
-      max_size      = 1
-      desired_size  = 1
+      min_size       = 1
+      max_size       = 1
+      desired_size   = 1
       instance_types = ["t3.micro"]
       capacity_type  = "ON_DEMAND"
     }
+  }
+}
+
+# -----------------------------
+# Kubernetes Provider
+# -----------------------------
+data "aws_eks_cluster" "this" {
+  name = module.eks.cluster_name
+}
+
+data "aws_eks_cluster_auth" "this" {
+  name = module.eks.cluster_name
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.this.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.this.token
+}
+
+# -----------------------------
+# RBAC Binding (fixes Unauthorized issue)
+# -----------------------------
+resource "kubernetes_cluster_role_binding" "eks_admins" {
+  metadata {
+    name = "eks-admins-binding"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = "cluster-admin"
+  }
+
+  subject {
+    kind      = "Group"
+    name      = "eks-admins"
+    api_group = "rbac.authorization.k8s.io"
   }
 }
 
@@ -117,7 +158,7 @@ resource "aws_instance" "jenkins" {
   associate_public_ip_address = true
   key_name                    = var.key_name
 
-  vpc_security_group_ids      = [aws_security_group.devops_sg.id]
+  vpc_security_group_ids = [aws_security_group.devops_sg.id]
 
   tags = {
     Name = "Jenkins-Server"
