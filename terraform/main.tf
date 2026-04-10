@@ -40,7 +40,6 @@ module "eks" {
     }
   }
 
-  # Required in v21.x
   authentication_mode = "API"
 
   aws_auth = {
