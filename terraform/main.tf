@@ -18,7 +18,7 @@ module "vpc" {
 # EKS Module
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.1.0"   # upgraded for aws_auth support
+  version = "20.24.0"   # upgraded for aws_auth support
 
   cluster_name    = "devops-cluster"
   cluster_version = "1.29"
