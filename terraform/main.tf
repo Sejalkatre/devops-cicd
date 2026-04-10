@@ -14,7 +14,7 @@ module "vpc" {
   enable_vpn_gateway = false
 }
 
-# EKS Module (new input style for v21.x)
+# EKS Module (correct schema for v21.1.0)
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "21.1.0"
