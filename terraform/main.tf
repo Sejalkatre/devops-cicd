@@ -1,4 +1,3 @@
-
 # VPC Module
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -15,18 +14,19 @@ module "vpc" {
   enable_vpn_gateway = false
 }
 
-# EKS Module
+# EKS Module (new input style)
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.1.0"   # upgraded for aws_auth support
+  version = "21.1.0"
 
-  cluster_name    = "devops-cluster"
-  cluster_version = "1.29"
+  cluster = {
+    name                   = "devops-cluster"
+    version                = "1.29"
+    endpoint_public_access = true
+  }
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
-
-  cluster_endpoint_public_access = true
 
   eks_managed_node_groups = {
     default = {
@@ -41,7 +41,8 @@ module "eks" {
   }
 
   # ✅ Map your IAM user into aws-auth ConfigMap
-  manage_aws_auth = true
+  authentication_mode = "API"   # required in v21.x
+  manage_aws_auth     = true
 
   aws_auth_users = [
     {
