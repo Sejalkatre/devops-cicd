@@ -14,16 +14,14 @@ module "vpc" {
   enable_vpn_gateway = false
 }
 
-# EKS Module (correct schema for v21.1.0)
+# EKS Module (old schema, v19.x)
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.1.0"
+  version = "19.21.0"
 
-  cluster = {
-    name                   = "devops-eks"   # changed name to avoid confusion
-    version                = "1.29"
-    endpoint_public_access = true
-  }
+  cluster_name    = "devops-eks"
+  cluster_version = "1.29"
+  cluster_endpoint_public_access = true
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -33,25 +31,20 @@ module "eks" {
       desired_size   = 1
       min_size       = 1
       max_size       = 2
-
       instance_types = ["t3.small"]
       ami_type       = "AL2_x86_64"
       capacity_type  = "ON_DEMAND"
     }
   }
 
-  authentication_mode = "API"
-
-  aws_auth = {
-    manage = true
-    users = [
-      {
-        userarn  = "arn:aws:iam::014641572582:user/tf_user"
-        username = "tf_user"
-        groups   = ["system:masters"]
-      }
-    ]
-  }
+  manage_aws_auth = true
+  aws_auth_users = [
+    {
+      userarn  = "arn:aws:iam::014641572582:user/tf_user"
+      username = "tf_user"
+      groups   = ["system:masters"]
+    }
+  ]
 }
 
 # Security Group for Jenkins EC2
