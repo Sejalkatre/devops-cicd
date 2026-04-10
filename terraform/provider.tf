@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"   # lock to AWS provider 5.x
+      version = "~> 6.0"   # lock to AWS provider 5.x
     }
   }
 }
