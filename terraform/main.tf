@@ -40,8 +40,8 @@ module "eks" {
     }
   }
 
-  # ✅ Map your IAM user into aws-auth ConfigMap
-  authentication_mode = "API"   # required in v21.x
+  # ✅ Required in v21.x
+  authentication_mode = "API"
   manage_aws_auth     = true
 
   aws_auth_users = [
