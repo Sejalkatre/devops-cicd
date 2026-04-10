@@ -1,7 +1,22 @@
+terraform {
+  required_version = ">= 1.3.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"   # ensure AWS provider 5.x
+    }
+  }
+}
+
+provider "aws" {
+  region = var.region
+}
+
 # VPC Module
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.1.2"
+  version = "5.1.2"   # pin stable version
 
   name    = "devops-vpc"
   cidr    = "10.0.0.0/16"
@@ -14,42 +29,30 @@ module "vpc" {
   enable_vpn_gateway = false
 }
 
-# EKS Module (old schema, v19.x)
+# EKS Module
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.1.0"
+  version = "20.8.4"   # pin stable version
 
-  cluster = {
-    name                   = "devops-eks"
-    version                = "1.29"
-    endpoint_public_access = true
-  }
+  cluster_name    = "devops-cluster"
+  cluster_version = "1.29"   # use supported version
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
+  cluster_endpoint_public_access = true
+
+  # Add a managed node group with 1 worker node
   eks_managed_node_groups = {
     default = {
       desired_size   = 1
       min_size       = 1
       max_size       = 2
+
       instance_types = ["t3.small"]
-      ami_type       = "AL2_x86_64"
+      ami_type       = "AL2_x86_64"   # Amazon Linux 2 EKS optimized AMI
       capacity_type  = "ON_DEMAND"
     }
-  }
-
-  authentication_mode = "API"
-
-  aws_auth = {
-    manage = true
-    users = [
-      {
-        userarn  = "arn:aws:iam::014641572582:user/tf_user"
-        username = "tf_user"
-        groups   = ["system:masters"]
-      }
-    ]
   }
 }
 
@@ -114,6 +117,7 @@ resource "aws_instance" "jenkins" {
 
   vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
 
+  # Install Jenkins, Docker, OpenJDK automatically
   user_data = file("${path.module}/jenkins-install.sh")
 
   tags = {
