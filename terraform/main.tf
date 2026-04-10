@@ -20,7 +20,7 @@ module "eks" {
   version = "21.1.0"
 
   cluster = {
-    name                   = "devops-cluster"
+    name                   = "devops-eks"   # changed name to avoid confusion
     version                = "1.29"
     endpoint_public_access = true
   }
