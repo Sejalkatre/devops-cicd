@@ -1,17 +1,3 @@
-terraform {
-  required_version = ">= 1.3.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"   # stay on AWS provider 5.x (latest stable)
-    }
-  }
-}
-
-provider "aws" {
-  region = var.region
-}
 
 # VPC Module
 module "vpc" {
