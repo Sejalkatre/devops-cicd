@@ -17,11 +17,13 @@ module "vpc" {
 # EKS Module (old schema, v19.x)
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "19.21.0"
+  version = "21.1.0"
 
-  cluster_name    = "devops-eks"
-  cluster_version = "1.29"
-  cluster_endpoint_public_access = true
+  cluster = {
+    name                   = "devops-eks"
+    version                = "1.29"
+    endpoint_public_access = true
+  }
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -37,14 +39,18 @@ module "eks" {
     }
   }
 
-  manage_aws_auth = true
-  aws_auth_users = [
-    {
-      userarn  = "arn:aws:iam::014641572582:user/tf_user"
-      username = "tf_user"
-      groups   = ["system:masters"]
-    }
-  ]
+  authentication_mode = "API"
+
+  aws_auth = {
+    manage = true
+    users = [
+      {
+        userarn  = "arn:aws:iam::014641572582:user/tf_user"
+        username = "tf_user"
+        groups   = ["system:masters"]
+      }
+    ]
+  }
 }
 
 # Security Group for Jenkins EC2
