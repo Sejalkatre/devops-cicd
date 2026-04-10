@@ -14,7 +14,7 @@ module "vpc" {
   enable_vpn_gateway = false
 }
 
-# EKS Module (new input style)
+# EKS Module (new input style for v21.x)
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "21.1.0"
@@ -40,17 +40,19 @@ module "eks" {
     }
   }
 
-  # ✅ Required in v21.x
+  # Required in v21.x
   authentication_mode = "API"
-  manage_aws_auth     = true
 
-  aws_auth_users = [
-    {
-      userarn  = "arn:aws:iam::014641572582:user/tf_user"
-      username = "tf_user"
-      groups   = ["system:masters"]
-    }
-  ]
+  aws_auth = {
+    manage = true
+    users = [
+      {
+        userarn  = "arn:aws:iam::014641572582:user/tf_user"
+        username = "tf_user"
+        groups   = ["system:masters"]
+      }
+    ]
+  }
 }
 
 # Security Group for Jenkins EC2
