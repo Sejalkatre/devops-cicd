@@ -4,19 +4,21 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"   # ensure AWS provider 5.x
+      version = "~> 5.0"   # AWS provider 5.x
     }
   }
 }
 
+# AWS Provider
 provider "aws" {
-  region = var.region
+  region  = var.region
+  profile = "eks-admin"   # use your configured profile
 }
 
 # VPC Module
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.1.2"   # pin stable version
+  version = "5.1.2"
 
   name    = "devops-vpc"
   cidr    = "10.0.0.0/16"
@@ -32,17 +34,16 @@ module "vpc" {
 # EKS Module
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.8.4"   # pin stable version
+  version = "20.8.4"
 
   cluster_name    = "devops-cluster"
-  cluster_version = "1.29"   # use supported version
+  cluster_version = "1.29"
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
   cluster_endpoint_public_access = true
 
-  # Add a managed node group with 1 worker node
   eks_managed_node_groups = {
     default = {
       desired_size   = 1
@@ -50,7 +51,7 @@ module "eks" {
       max_size       = 2
 
       instance_types = ["t3.small"]
-      ami_type       = "AL2_x86_64"   # Amazon Linux 2 EKS optimized AMI
+      ami_type       = "AL2_x86_64"
       capacity_type  = "ON_DEMAND"
     }
   }
@@ -107,7 +108,7 @@ resource "aws_security_group" "jenkins_sg" {
   }
 }
 
-# Jenkins EC2 Instance (Ubuntu Server)
+# Jenkins EC2 Instance
 resource "aws_instance" "jenkins" {
   ami                         = var.ami_id   # Ubuntu AMI ID for your region
   instance_type               = "t3.micro"
@@ -117,7 +118,6 @@ resource "aws_instance" "jenkins" {
 
   vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
 
-  # Install Jenkins, Docker, OpenJDK automatically
   user_data = file("${path.module}/jenkins-install.sh")
 
   tags = {
