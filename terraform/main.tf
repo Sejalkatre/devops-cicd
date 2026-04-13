@@ -11,8 +11,11 @@ terraform {
 
 # AWS Provider
 provider "aws" {
-  region  = var.region
-  profile = "eks-admin"   # use your configured profile
+  region     = var.region
+
+  # Hardcoded IAM user credentials (replace with your eks-admin keys)
+  access_key = "AKIAQG2FUVLTG43SQ7XV"
+  secret_key = "vmokOhFe9mmM/c2CiJwbTwHaTCoMr8zAEKkE1AmK"
 }
 
 # VPC Module
